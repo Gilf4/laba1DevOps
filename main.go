@@ -8,14 +8,8 @@ import (
 
 	"github.com/joho/godotenv"
 	_ "github.com/lib/pq"
-
+	"student/models"
 )
-
-type Student struct {
-	Id   int
-	FirstName string
-	BirthDate int
-}
 
 func main() {
 	err := godotenv.Load()
@@ -43,17 +37,24 @@ func main() {
 	}
 	defer rows.Close()	
 
+	var students []models.Student
+
 	for rows.Next() {
-		var student Student
-		err := rows.Scan(&student.Id, &student.FirstName, &student.BirthDate)
+		var student models.Student
+		err := rows.Scan(&student.Id, &student.FirstName, &student.LastName, &student.BirthYear, &student.Group)
 		if err != nil {
 			log.Fatal(err)
 		}
-		fmt.Println(student)
-	}	
+		students = append(students, student)
+	}
 
 	err = rows.Err()
 	if err != nil {
 		log.Fatal(err)
+	}
+
+	for _, student := range students {
+		fmt.Printf("ID: %d, Name: %s %s, Birth Year: %d, Group: %s\n",
+			student.Id, student.FirstName, student.LastName, student.BirthYear, student.Group)
 	}
 }
