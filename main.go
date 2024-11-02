@@ -1,59 +1,49 @@
 package main
 
 import (
-	"database/sql"
 	"fmt"
 	"log"
 	"os"
+	"context"
+
+	"student/models"
 
 	"github.com/joho/godotenv"
-	_ "github.com/lib/pq"
+	"github.com/jackc/pgx/v5"
 
 )
-
-type Student struct {
-	Id   int
-	FirstName string
-	BirthDate int
-}
-
 func main() {
 	err := godotenv.Load()
 	if err != nil {
-		log.Fatal("Error loading .env file")
+		log.Fatal(err)
 	}
-
-	db, err := sql.Open("postgres", os.Getenv("DATABASE_URL"))
+	
+	conn, err := pgx.Connect(context.Background(), os.Getenv("DATABASE_URL"))
 	if err != nil {
 		log.Fatal(err)
 	}
-	defer db.Close()
+	defer conn.Close(context.Background())
 
-	err = db.Ping()
+	var students []models.Student
+
+	rows, err := conn.Query(context.Background(), 
+	"SELECT id, first_name, last_name, birth_year, group_name FROM students")
+
 	if err != nil {
 		log.Fatal(err)
 	}
-
-	fmt.Println("Successfully connected!")
-
-
-	rows, err := db.Query("SELECT * FROM students")
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer rows.Close()	
 
 	for rows.Next() {
-		var student Student
-		err := rows.Scan(&student.Id, &student.FirstName, &student.BirthDate)
+		var student models.Student
+		err := rows.Scan(&student.Id, &student.FirstName, &student.LastName, &student.BirthYear, &student.Group)
 		if err != nil {
 			log.Fatal(err)
 		}
-		fmt.Println(student)
-	}	
-
-	err = rows.Err()
-	if err != nil {
-		log.Fatal(err)
+		students = append(students, student)
+	}
+	
+	for _, student := range students {
+		fmt.Printf("ID: %d, Name: %s %s, Birth Year: %d, Group: %s\n",
+			student.Id, student.FirstName, student.LastName, student.BirthYear, student.Group)
 	}
 }
